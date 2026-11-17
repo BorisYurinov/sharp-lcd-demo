@@ -44,7 +44,9 @@ v log. 1** (obráceně než u většiny SPI zařízení) – ovladač to řeší
 > **Pozor na rozdíl oproti originálnímu ovladači:** `sharp-drm.dts` přímo v repozitáři
 > sharp-drm-driver má CS na GPIO8 (pin 24). Tenhle návod používá **upravený overlay s CS na
 > GPIO25** – proto se v kroku 3 kompiluje `sharp-drm.dts` z tohoto repozitáře, ne z ovladače.
-> Pokud chceš zapojit CS na GPIO8, použij overlay z ovladače.
+> Pokud chceš zapojit CS na GPIO8, použij originální overlay – pro srovnání je v tomto repozitáři
+> jako [`sharp-drm.original.dts`](sharp-drm.original.dts). Upravená verze navíc přidává
+> `brcm,function = <4 4>` (piny SPI výslovně přepnuté na funkci SPI) a GPIO25 do skupiny výstupních pinů.
 
 ## 2) Instalace ovladače
 
@@ -55,9 +57,14 @@ cd ~
 git clone https://github.com/BorisYurinov/sharp-lcd-demo.git
 git clone https://github.com/ardangelo/sharp-drm-driver.git
 cd sharp-drm-driver
+git checkout b8e7a86e962541b5d741c8fcc18152305279f118
 make
 sudo make install
 ```
+
+`git checkout b8e7a86…` přepne ovladač na **přesně tu verzi, která na ověřeném RPi Zero 2 W běží**
+(29. 4. 2026). Novější verze ovladače mohou fungovat taky, ale vyzkoušené nejsou. Zdrojáky ovladače
+v C se od originálu neliší vůbec – jediná úprava je overlay `sharp-drm.dts` (viz níže).
 
 `linux-headers-rpi-v8` platí pro 64bitový systém na Zero 2 W, Pi 3 a Pi 4. Pokud `make`
 skončí chybou o chybějících hlavičkách jádra, nejdřív `sudo apt full-upgrade` a restart, ať
@@ -138,6 +145,6 @@ deklaruje CS zároveň jako aktivní low (`cs-gpios`) i aktivní high (`spi-cs-h
 
 ## Licence
 
-Tohle demo (`nazdar.py`): MIT (viz `LICENSE`). Soubor `sharp-drm.dts` je upravený overlay
-z projektu sharp-drm-driver, a proto spadá pod jeho licenci GPL-2.0. Samotný ovladač `sharp-drm` je samostatný projekt pod licencí GPL-2.0
+Tohle demo (`nazdar.py`): MIT (viz `LICENSE`). Soubory `sharp-drm.dts` (upravený) a `sharp-drm.original.dts` (originál) jsou overlaye
+z projektu sharp-drm-driver, a proto spadají pod jeho licenci GPL-2.0. Samotný ovladač `sharp-drm` je samostatný projekt pod licencí GPL-2.0
 a v tomto repozitáři není – stahuje se z [ardangelo/sharp-drm-driver](https://github.com/ardangelo/sharp-drm-driver).
