@@ -25,7 +25,8 @@ proto se displej nemá nechávat zapnutý bez načteného ovladače.
 
 ## 1) Zapojení
 
-Podle overlaye ovladače `sharp-drm` (soubor `sharp-drm.dts` v jeho repozitáři):
+Zapojení odpovídá souboru [`sharp-drm.dts`](sharp-drm.dts) v tomto repozitáři (ověřeno na
+běžícím Raspberry Pi Zero 2 W):
 
 | Displej | Raspberry Pi | Fyzický pin |
 |---|---|---|
@@ -33,21 +34,25 @@ Podle overlaye ovladače `sharp-drm` (soubor `sharp-drm.dts` v jeho repozitáři
 | GND | GND | 6 |
 | SCLK (CLK) | GPIO11 (SPI0 SCLK) | 23 |
 | MOSI (DI) | GPIO10 (SPI0 MOSI) | 19 |
-| CS (SCS) | GPIO8 (SPI0 CE0) | 24 |
+| CS (SCS) | GPIO25 | 22 |
 | EXTCOMIN (VCOM) | GPIO23 | 16 |
 | DISP | GPIO22 | 15 |
 
 MISO se nepoužívá, displej data jen přijímá. Pozor: **CS je u tohoto displeje aktivní
 v log. 1** (obráceně než u většiny SPI zařízení) – ovladač to řeší sám.
 
-> **Před zapnutím zkontroluj zapojení podle `sharp-drm.dts`** ve staženém ovladači
-> (řádky `vcom-gpios` a `disp-gpios`). Pokud ho někdy upravíš, platí tvoje verze, ne tahle tabulka.
+> **Pozor na rozdíl oproti originálnímu ovladači:** `sharp-drm.dts` přímo v repozitáři
+> sharp-drm-driver má CS na GPIO8 (pin 24). Tenhle návod používá **upravený overlay s CS na
+> GPIO25** – proto se v kroku 3 kompiluje `sharp-drm.dts` z tohoto repozitáře, ne z ovladače.
+> Pokud chceš zapojit CS na GPIO8, použij overlay z ovladače.
 
 ## 2) Instalace ovladače
 
 ```bash
 sudo apt update
 sudo apt install -y git build-essential linux-headers-rpi-v8 device-tree-compiler python3-pil fonts-dejavu-core
+cd ~
+git clone https://github.com/BorisYurinov/sharp-lcd-demo.git
 git clone https://github.com/ardangelo/sharp-drm-driver.git
 cd sharp-drm-driver
 make
@@ -69,10 +74,12 @@ sudo cp /boot/firmware/config.txt /boot/firmware/config.txt.zaloha
 sudo cp /boot/firmware/cmdline.txt /boot/firmware/cmdline.txt.zaloha
 ```
 
-Ovladač si overlay (popis zapojení pro jádro) neinstaluje sám, proto ho zkompiluj a zkopíruj ručně a zapni ho v `/boot/firmware/config.txt`:
+Ovladač si overlay (popis zapojení pro jádro) neinstaluje sám, proto zkompiluj a zkopíruj
+overlay z tohoto repozitáře a zapni ho v `/boot/firmware/config.txt` (dvě varování
+`unit_address_vs_reg` při kompilaci jsou neškodná):
 
 ```bash
-cd ~/sharp-drm-driver
+cd ~/sharp-lcd-demo
 dtc -@ -I dts -O dtb -o sharp-drm.dtbo sharp-drm.dts
 sudo cp sharp-drm.dtbo /boot/firmware/overlays/
 echo "dtparam=spi=on" | sudo tee -a /boot/firmware/config.txt
@@ -99,8 +106,7 @@ Po startu by se na displeji měla objevit textová konzole s přihlášením.
 ## 4) Spuštění dema
 
 ```bash
-git clone https://github.com/BorisYurinov/sharp-lcd-demo.git
-cd sharp-lcd-demo
+cd ~/sharp-lcd-demo
 python3 nazdar.py
 ```
 
@@ -127,7 +133,11 @@ cat /sys/class/vtconsole/vtcon1/bind    # 1 = konzole je na displeji namapovaná
 | framebuffer existuje, displej prázdný | chybí `fbcon=map:1` v `cmdline.txt` (krok 3) |
 | obraz je inverzní | `echo 1 \| sudo tee /sys/module/sharp_drm/parameters/mono_invert` |
 
+Hláška `sharp_drm@0 GPIO handle specifies active low - ignored` v `dmesg` je neškodná: overlay
+deklaruje CS zároveň jako aktivní low (`cs-gpios`) i aktivní high (`spi-cs-high`) a jádro se řídí tím druhým.
+
 ## Licence
 
-Tohle demo: MIT (viz `LICENSE`). Ovladač `sharp-drm` je samostatný projekt pod licencí GPL-2.0
+Tohle demo (`nazdar.py`): MIT (viz `LICENSE`). Soubor `sharp-drm.dts` je upravený overlay
+z projektu sharp-drm-driver, a proto spadá pod jeho licenci GPL-2.0. Samotný ovladač `sharp-drm` je samostatný projekt pod licencí GPL-2.0
 a v tomto repozitáři není – stahuje se z [ardangelo/sharp-drm-driver](https://github.com/ardangelo/sharp-drm-driver).
